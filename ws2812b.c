@@ -20,18 +20,23 @@
 #define BUFFER_FULL_LEN		32
 #define BUFFER_HALF		(BUFFER_FULL_LEN/2)
 
-static uint8_t buffer[BUFFER_FULL_LEN] = {0};
+#define TIM_VAL_ZERO		8
+#define TIM_VAL_ONE		22
+
+static uint8_t output_buffer[BUFFER_FULL_LEN] = {0};
 static int input_buffer_pos;
 static volatile int display_complete = 1;
 static int total_transfer_size = 48;
+static uint8_t *loc_input_buffer;
 
-static inline uint8_t input_buffer_val(uint8_t *buffer, unsigned int pos)
+
+static inline uint8_t input_buffer_val(unsigned int pos)
 {
-	if ((pos & 3) == 0) {
-		return 2+(pos>>2);
-	} else {
-		return 1;
-	}
+	/* The input position is actually a bit into the byte-indexed buffer. */
+	unsigned int byte_offs = pos / 8;
+	unsigned int bit_offs = pos & 0x7;
+	unsigned int bitval = (loc_input_buffer[byte_offs] >> bit_offs) & 1;
+	return bitval ? TIM_VAL_ONE : TIM_VAL_ZERO;
 }
 
 static void ws_timer_init(void)
@@ -93,7 +98,7 @@ static void	ws_dma_init(int circular, unsigned int len)
 	DMA_DeInit(DMA1_Channel5);
 
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uintptr_t)&TIM1->CCR3;
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uintptr_t)buffer;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uintptr_t)output_buffer;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
@@ -135,7 +140,10 @@ void	ws2812_init(void)
 	ws_irq_init();
 }
 
-void	ws2812_display(uint8_t *input_buffer, int num)
+/* The parameters are a byte buffer of RGB tuples and a number, which is the
+ * number of three-byte tuples supplied. (i.e. the number of LEDs.)
+ */
+void	ws2812_display(uint8_t *input_buffer, int num_leds)
 {
 	if (!display_complete)
 		return;
@@ -186,12 +194,15 @@ void	ws2812_display(uint8_t *input_buffer, int num)
 	 * circular case anyway.
 	 */
 
+	loc_input_buffer = input_buffer;
+	total_transfer_size = num_leds * 24;
+
 	/* Fill initial full-buffer: */
 	input_buffer_pos = 0;
 	for (int i = 0; i < BUFFER_FULL_LEN; i++) {
 		uint8_t e = (i < total_transfer_size) ?
-			input_buffer_val(0, input_buffer_pos) : 0;
-		buffer[i] = e;
+			input_buffer_val(input_buffer_pos) : 0;
+		output_buffer[i] = e;
 		input_buffer_pos++;
 	}
 
@@ -234,8 +245,8 @@ void DMA1_Channel4_5_IRQHandler(void)
 	for (int i = 0; i < BUFFER_HALF; i++) {
 		/* After we finish the input data, pad with zero: */
 		uint8_t e = (i < entries_to_go) ?
-			input_buffer_val(0, input_buffer_pos) : 0;
-		buffer[startpoint + i] = e;
+			input_buffer_val(input_buffer_pos) : 0;
+		output_buffer[startpoint + i] = e;
 		input_buffer_pos++;
 	}
 
