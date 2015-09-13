@@ -87,7 +87,8 @@ int	main(void)
 	uart_init();
 
 	ws2812_init();
-	
+	delay_ms(1);
+
 	__enable_irq();
 	led(0);
 	while(1) {
