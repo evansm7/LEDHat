@@ -11,13 +11,13 @@
 
 /* PB1: TIM1_CH3N (AF2)
    WS2812B:  1.25us cycle, either 0.35 high + 0.9 low (0) or 0.9 high + 0.35 low (1)
-   1.25us +/- 0.15 = 800MHz.
+   1.25us +/- 0.15 = 800KHz.
 
    So 10 ticks total at 8MHz, either 3+7 or 7+3?
-   
+   No.  24MHz.  30 for total period @800KHz.  8 or 22 gives correct bits.
 */
 
-#define BUFFER_FULL_LEN		20
+#define BUFFER_FULL_LEN		16
 #define BUFFER_HALF		(BUFFER_FULL_LEN/2)
 
 static uint8_t buffer[BUFFER_FULL_LEN] = {0};
@@ -28,8 +28,11 @@ static int total_transfer_size = 20;
 
 static inline uint8_t input_buffer_val(uint8_t *buffer, unsigned int pos)
 {
-	// TBD
-	return pos;
+	if ((pos & 3) == 0) {
+		return 2+(pos>>2);
+	} else {
+		return 1;
+	}
 }
 
 static void ws_timer_init(void)
@@ -56,7 +59,7 @@ static void ws_timer_init(void)
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
 	TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
 	/* This is CCR3, time high until low: */
-	TIM_OCInitStructure.TIM_Pulse = 10; //22 or 8
+	TIM_OCInitStructure.TIM_Pulse = 0;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Reset;
 	TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
@@ -72,12 +75,12 @@ static void ws_timer_init(void)
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
 }
 
-static void	ws_irq_init(uint32_t enable)
+static void	ws_irq_init(void)
 {
 	NVIC_InitTypeDef NVIC_InitStructure;
 	NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel4_5_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPriority = 0x01;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = enable;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 }
 
@@ -131,6 +134,12 @@ void	ws2812_init(void)
 	/* Select TIM1_CH3N: */
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource1, GPIO_AF_2);
 
+	ws_timer_init();
+	ws_irq_init();
+}
+
+void	ws2812_display(uint8_t *input_buffer, int num)
+{
 	// Should delay/allow GPIO to be at 0 for a while.
 	
 	/* This technique deals with 'half-buffers', for which we get an
@@ -174,15 +183,13 @@ void	ws2812_init(void)
 	 */
 
 	/* Fill initial full-buffer from bottom: */
-	transfer_bottntop = 0;
+	transfer_bottntop = 1;
 	int initial_amount = (total_transfer_size > BUFFER_FULL_LEN) ? BUFFER_FULL_LEN : total_transfer_size;
 
+	input_buffer_pos = 0;
 	for (int i = 0; i < initial_amount; i++) {
-		buffer[i] = input_buffer_val(0, i);
+		buffer[i] = input_buffer_val(0, input_buffer_pos++);
 	}
-	input_buffer_pos = initial_amount;
-
-	ws_timer_init();
 
 	if (total_transfer_size > BUFFER_FULL_LEN) {
 		/* We'll need multiple buffers.  Do circular version: */
@@ -191,7 +198,6 @@ void	ws2812_init(void)
 		/* We only need one buffer and no refill.  Linear version: */
 		ws_dma_init(0, total_transfer_size);
 	}
-	ws_irq_init(ENABLE);
 
 	led(0);	
 
@@ -202,10 +208,8 @@ void	ws2812_init(void)
 void DMA1_Channel4_5_IRQHandler(void)
 {
 	if (DMA_GetITStatus(DMA1_IT_HT5)) {
-		led(1);
 		/* Clear DMA Half Transfer pending */
 		DMA_ClearITPendingBit(DMA1_IT_HT5);
-		return;
 		/* Have transferred 'BUFFER_HALF' items from either the bottom
 		 * or top half of the buffer.  Refill entries into this half (as
 		 * the other half is now being clocked out).
@@ -219,6 +223,7 @@ void DMA1_Channel4_5_IRQHandler(void)
 			buffer[startpoint + i] = e;
 			input_buffer_pos++;
 		}
+		transfer_bottntop = 1 - transfer_bottntop;
 		/* How do I stop circular DMA at a particular point?
 		 * Sounds impossible -- wait for next+1 HT after done,
 		 * which was padded with zeroes, and switch off then.
@@ -236,15 +241,11 @@ void DMA1_Channel4_5_IRQHandler(void)
 			 * now: */
 			TIM_Cmd(TIM1, DISABLE);
 			DMA_Cmd(DMA1_Channel5, DISABLE);
+			led(1);
 		}
-		transfer_bottntop ^= 1;
 	} else if (DMA_GetITStatus(DMA1_IT_TC5)) {
 		DMA_ClearITPendingBit(DMA1_IT_TC5);
 	}
-}
-
-void	ws2812_display(uint8_t *buffer, int num)
-{
 }
 
 int	ws2812_display_done(void)

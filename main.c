@@ -91,8 +91,8 @@ int	main(void)
 	__enable_irq();
 	led(0);
 	while(1) {
-		delay_ms(100);
-//		ws2812_init();
+		delay_ms(1000);
+		ws2812_display(0, 0);
 		/* for (int i = 1; i < 100; i++) { */
 		/* 	for (int j = 0; j < 100-i; j++) { */
 		/* 		delay_ms(i); */
