@@ -77,6 +77,8 @@ void    setup_clocks(void)
         while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)RCC_CFGR_SWS_PLL) { }
 }
 
+const uint8_t colours[] = { 0xaa, 0x55, 0x11,
+			    0xff, 0x00, 0xff };
 
 int	main(void)
 {
@@ -93,7 +95,7 @@ int	main(void)
 	led(0);
 	while(1) {
 		delay_ms(1000);
-		ws2812_display(0, 0);
+		ws2812_display(colours, 2);
 		/* for (int i = 1; i < 100; i++) { */
 		/* 	for (int j = 0; j < 100-i; j++) { */
 		/* 		delay_ms(i); */
