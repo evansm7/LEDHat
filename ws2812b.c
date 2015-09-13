@@ -70,9 +70,6 @@ static void ws_timer_init(void)
 	
 	/* TIM1 Main Output Enable */
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
-	
-	/* TIM1 counter enable */
-//	TIM_Cmd(TIM1, ENABLE);
 }
 
 static void	ws_irq_init(uint32_t enable)
@@ -84,7 +81,7 @@ static void	ws_irq_init(uint32_t enable)
 	NVIC_Init(&NVIC_InitStructure);
 }
 
-static void	ws_dma_init(void)
+static void	ws_dma_init(int circular, unsigned int len)
 {
 	DMA_InitTypeDef  DMA_InitStructure;
 
@@ -96,27 +93,32 @@ static void	ws_dma_init(void)
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uintptr_t)&TIM1->CCR3;
 	DMA_InitStructure.DMA_MemoryBaseAddr = (uintptr_t)buffer;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
-	// buffersize
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
 	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-	// Mode
 	DMA_InitStructure.DMA_Priority = DMA_Priority_High;
 	DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
-	DMA_InitStructure.DMA_BufferSize = BUFFER_FULL_LEN;
-	DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
+
+	DMA_InitStructure.DMA_BufferSize = len;
+	if (circular)
+		DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
+	else
+		DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+
 	DMA_Init(DMA1_Channel5, &DMA_InitStructure);
 	DMA_Cmd(DMA1_Channel5, ENABLE);
+
+	if (circular)
+		DMA_ITConfig(DMA1_Channel5, DMA_IT_TC | DMA_IT_HT, ENABLE);
+	else
+		DMA_ITConfig(DMA1_Channel5, DMA_IT_TC | DMA_IT_HT, DISABLE);
+	DMA_ClearFlag(DMA1_FLAG_TC5 | DMA1_FLAG_HT5);
 }
 
 void	ws2812_init(void)
 {
 	GPIO_InitTypeDef  	GPIO_InitStructure;
-
-	for (int i = 0; i < BUFFER_FULL_LEN; i++) {
-		buffer[i] = i;
-	}
 
 	RCC->AHBENR |= RCC_AHBPeriph_GPIOB;
 
@@ -129,12 +131,7 @@ void	ws2812_init(void)
 	/* Select TIM1_CH3N: */
 	GPIO_PinAFConfig(GPIOB, GPIO_PinSource1, GPIO_AF_2);
 
-	ws_timer_init();
-	ws_dma_init();
-	ws_irq_init(ENABLE);
-
-	led(0);
-
+	// Should delay/allow GPIO to be at 0 for a while.
 	
 	/* This technique deals with 'half-buffers', for which we get an
 	 * interrupt just after output.  There are these possibilities for total
@@ -181,27 +178,22 @@ void	ws2812_init(void)
 	int initial_amount = (total_transfer_size > BUFFER_FULL_LEN) ? BUFFER_FULL_LEN : total_transfer_size;
 
 	for (int i = 0; i < initial_amount; i++) {
-//		buffer[i] = input_buffer_val(0, i);
+		buffer[i] = input_buffer_val(0, i);
 	}
 	input_buffer_pos = initial_amount;
 
-	if (1) {//total_transfer_size > BUFFER_FULL_LEN) {
-		/* We'll need multiple buffers.  Do circular version: */
-//		DMA_InitStructure.DMA_BufferSize = BUFFER_FULL_LEN;
-//		DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
-//		DMA_Init(DMA1_Channel5, &DMA_InitStructure);
+	ws_timer_init();
 
-		/* For the 'DMA half transfer' IRQ: */
+	if (total_transfer_size > BUFFER_FULL_LEN) {
+		/* We'll need multiple buffers.  Do circular version: */
+		ws_dma_init(1, BUFFER_FULL_LEN);
 	} else {
 		/* We only need one buffer and no refill.  Linear version: */
-		/* DMA_InitStructure.DMA_BufferSize = total_transfer_size; */
-		/* DMA_InitStructure.DMA_Mode = DMA_Mode_Normal; */
-		/* DMA_Init(DMA1_Channel5, &DMA_InitStructure); */
-  
-		/* /\* No DMA IRQ: *\/ // FIXME, want an actual completeness one? */
-		/* NVIC_InitStructure.NVIC_IRQChannelCmd = DISABLE; */
-		/* NVIC_Init(&NVIC_InitStructure); */
+		ws_dma_init(0, total_transfer_size);
 	}
+	ws_irq_init(ENABLE);
+
+	led(0);	
 
 	/* TIM1 counter enable */
 	TIM_Cmd(TIM1, ENABLE);
@@ -209,7 +201,7 @@ void	ws2812_init(void)
 
 void DMA1_Channel4_5_IRQHandler(void)
 {
-	if(DMA_GetITStatus(DMA1_IT_HT5)) {
+	if (DMA_GetITStatus(DMA1_IT_HT5)) {
 		led(1);
 		/* Clear DMA Half Transfer pending */
 		DMA_ClearITPendingBit(DMA1_IT_HT5);
@@ -246,6 +238,8 @@ void DMA1_Channel4_5_IRQHandler(void)
 			DMA_Cmd(DMA1_Channel5, DISABLE);
 		}
 		transfer_bottntop ^= 1;
+	} else if (DMA_GetITStatus(DMA1_IT_TC5)) {
+		DMA_ClearITPendingBit(DMA1_IT_TC5);
 	}
 }
 
