@@ -215,9 +215,6 @@ void	ws2812_display(uint8_t *input_buffer, int num_leds)
 		 */
 		ws_dma_init(0, total_transfer_size+1);
 	}
-
-	led(0);	
-
 	display_complete = 0;
 	/* TIM1 counter enable */
 	TIM_Cmd(TIM1, ENABLE);
@@ -268,7 +265,6 @@ void DMA1_Channel4_5_IRQHandler(void)
 		TIM_Cmd(TIM1, DISABLE);
 		DMA_Cmd(DMA1_Channel5, DISABLE);
 		display_complete = 1;
-		led(1);
 	}
 }
 
