@@ -14,14 +14,14 @@
    1.25us +/- 0.15 = 800KHz.
 
    So 10 ticks total at 8MHz, either 3+7 or 7+3?
-   No.  24MHz.  30 for total period @800KHz.  8 or 22 gives correct bits.
+   No.  48MHz.  60 for total period @800KHz.  17 or 43 gives correct bits.
 */
 
 #define BUFFER_FULL_LEN		32
 #define BUFFER_HALF		(BUFFER_FULL_LEN/2)
 
-#define TIM_VAL_ZERO		8
-#define TIM_VAL_ONE		22
+#define TIM_VAL_ZERO		17
+#define TIM_VAL_ONE		43
 
 static uint8_t output_buffer[BUFFER_FULL_LEN] = {0};
 static int input_buffer_pos;
@@ -49,8 +49,8 @@ static void ws_timer_init(void)
 	TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
 	TIM_TimeBaseStructure.TIM_Prescaler = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	/* 24MHz sysclock -> 800KHz period: */
-	TIM_TimeBaseStructure.TIM_Period = 30;
+	/* Appears to be 48MHz sysclock.  60 ticks -> 800KHz period: */
+	TIM_TimeBaseStructure.TIM_Period = 60;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
 	TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
