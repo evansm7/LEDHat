@@ -17,8 +17,8 @@ CFLAGS += -fdata-sections -ffunction-sections
 LIBS=-lgcc
 LINKFLAGS=-Wl,--gc-sections --specs=nano.specs
 
-OBJECTS = me_startup_stm32f0xx.o system_stm32f0xx.o stm32f0xx_rcc.o stm32f0xx_tim.o stm32f0xx_gpio.o stm32f0xx_dma.o stm32f0xx_misc.o
-OBJECTS += main.o uart.o ws2812b.o
+OBJECTS = me_startup_stm32f0xx.o system_stm32f0xx.o stm32f0xx_rcc.o stm32f0xx_tim.o stm32f0xx_gpio.o stm32f0xx_dma.o stm32f0xx_misc.o stm32f0xx_i2c.o
+OBJECTS += main.o uart.o ws2812b.o i2c.o
 
 all:	main.fl.bin
 
