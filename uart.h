@@ -10,6 +10,7 @@ static inline void uart_pstr(char *s)
 	while (*s)
 		uart_putch(*s++);
 }
+void uart_phex32(unsigned int w);
 
 void uart_init(void);
 

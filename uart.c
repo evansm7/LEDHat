@@ -23,6 +23,18 @@ int uart_ch_rdy(void)
 	return !!(USART1->ISR & USART_ISR_RXNE);
 }
 
+void uart_phex32(unsigned int w)
+{
+	char hexbuff[9];
+	int i;
+	for (i = 0; i < 8; i++) {
+		unsigned int b = (w >> ((7-i) * 4)) & 0xf;
+		hexbuff[i] = (b > 9) ? b + 'a' - 10 : b + '0';
+	}
+	hexbuff[8] = 0;
+	uart_pstr(hexbuff);
+}
+
 void uart_init(void)
 {
 	/* Use PA2=TX, PA3=RX as PA9/PA10 are for I2C.  USART1 = AF1. */
@@ -45,6 +57,4 @@ void uart_init(void)
 	USART1->CR2 = 0; /* 1 stop */
 	USART1->CR1 |= USART_CR1_UE;
 	USART1->CR1 |= USART_CR1_TE | USART_CR1_RE;
-
-	uart_pstr("Hello das world!\n");
 }
