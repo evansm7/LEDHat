@@ -15,7 +15,9 @@ INCLUDES += -I.
 CFLAGS=-mthumb -mcpu=cortex-m0 -std=c99 -Os -g -ggdb $(INCLUDES) -ffreestanding -msoft-float -DUSE_STDPERIPH_DRIVER=1
 CFLAGS += -fdata-sections -ffunction-sections
 LIBS=-lgcc
-LINKFLAGS=-Wl,--gc-sections --specs=nano.specs
+# Note:  The -march/-mthumb items are must-haves, to select v6m crtX.o and
+# libgcc.a!
+LINKFLAGS=-Wl,--gc-sections -march=armv6-m -mthumb --specs=nano.specs
 
 OBJECTS = me_startup_stm32f0xx.o system_stm32f0xx.o stm32f0xx_rcc.o stm32f0xx_tim.o stm32f0xx_gpio.o stm32f0xx_dma.o stm32f0xx_misc.o stm32f0xx_i2c.o
 OBJECTS += main.o uart.o ws2812b.o i2c.o
