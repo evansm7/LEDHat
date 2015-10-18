@@ -34,7 +34,7 @@ static inline uint8_t input_buffer_val(unsigned int pos)
 {
 	/* The input position is actually a bit into the byte-indexed buffer. */
 	unsigned int byte_offs = pos / 8;
-	unsigned int bit_offs = pos & 0x7;
+	unsigned int bit_offs = 7 - (pos & 0x7);
 	unsigned int bitval = (loc_input_buffer[byte_offs] >> bit_offs) & 1;
 	return bitval ? TIM_VAL_ONE : TIM_VAL_ZERO;
 }
