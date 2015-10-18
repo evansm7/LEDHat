@@ -7,6 +7,7 @@
 #include "uart.h"
 #include "ws2812b.h"
 #include "i2c.h"
+#include "adxl345.h"
 
 /*
   NOTES:
@@ -63,6 +64,7 @@ int	main(void)
 	uart_pstr("UART inited, hello das world!\r\n");
 
 	i2c_init();
+	accel_init();
 	
 	ws2812_init();
 	delay_ms(1);
