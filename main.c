@@ -3,6 +3,7 @@
 #include <stm32f0xx_rcc.h>
 
 #include "hw.h"
+#include "time.h"
 #include "uart.h"
 #include "ws2812b.h"
 #include "i2c.h"
@@ -13,36 +14,6 @@
 STM32F030F4
 
 */
-
-void	delay_us(int d);
-
-#define SH_WAIT delay_us(10)
-
-
-volatile uint64_t global_time = 0;
-
-void	delay_ms(int d)
-{
-	uint64_t tn = global_time;
-
-	while ((global_time - tn) < d) {
-		__WFI();
-	}
-}
-
-void	delay_us(int d)
-{
-	d *= 48/3;
-	__asm__ volatile ("1: sub %0, #1 ; cmp %0, #0; bgt 1b" : : "r"(d));
-}
-
-void SysTick_Handler(void)
-{
-	static int on = 0;
-	on++;
-
-	global_time++;
-}
 
 void    setup_clocks(void)
 {
@@ -86,7 +57,8 @@ int	main(void)
 	setup_clocks();
 	setup_io();
 
-	SysTick_Config(SYS_CLK/1000);	// 1KHz tick IRQ
+	time_init();	/* 1KHz */
+
 	uart_init();
 	uart_pstr("UART inited, hello das world!\r\n");
 
