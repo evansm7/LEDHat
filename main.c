@@ -87,6 +87,7 @@ int	main(void)
 
 	SysTick_Config(SYS_CLK/1000);	// 1KHz tick IRQ
 	uart_init();
+	uart_pstr("UART inited, hello das world!\r\n");
 
 	ws2812_init();
 	delay_ms(1);
