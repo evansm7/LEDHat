@@ -15,6 +15,8 @@
 
    So 10 ticks total at 8MHz, either 3+7 or 7+3?
    No.  48MHz.  60 for total period @800KHz.  17 or 43 gives correct bits.
+
+   Display of one LED takes 30us.
 */
 
 #define BUFFER_FULL_LEN		32
