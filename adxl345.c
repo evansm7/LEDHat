@@ -22,9 +22,22 @@
  */
 
 /* Globally-accessible through accel_read(): */
-int16_t	accel_read_x;
-int16_t	accel_read_y;
-int16_t	accel_read_z;
+int16_t	accel_read_x, accel_read_y, accel_read_z;
+
+int16_t	accel_raw_x, accel_raw_y, accel_raw_z;
+
+/* Measured X, Y, Z min:max for -1g to 1g: */
+#define X_2G_RANGE	597
+#define X_OFFSET	81
+#define Y_2G_RANGE	590
+#define Y_OFFSET	158
+#define Z_2G_RANGE	553
+#define Z_OFFSET	-613
+
+/* Scale to a range with 1g=512 */
+#define CORRECT_X(x)	( (((x) + (X_OFFSET)) * 1024)/X_2G_RANGE )
+#define CORRECT_Y(x)	( (((x) + (Y_OFFSET)) * 1024)/Y_2G_RANGE )
+#define CORRECT_Z(x)	( (((x) + (Z_OFFSET)) * 1024)/Z_2G_RANGE )
 
 void EXTI0_1_IRQHandler(void)
 {
@@ -34,9 +47,17 @@ void EXTI0_1_IRQHandler(void)
 		/* Read data/sample */
 		uint8_t	data[6];
 		if (i2c_read(ADXL_ADDR, ADXL345_FIFO, data, 6) == 0) {
-			accel_read_x = data[0] | ((int16_t)data[1] << 8);
-			accel_read_y = data[2] | ((int16_t)data[3] << 8);
-			accel_read_z = data[4] | ((int16_t)data[5] << 8);
+			/* Urgh, saw a compiler bug here/sensitivity to whether
+			 * these assignments used an intermediate value of int16
+			 * or int32 (worked /with/ 16-bit intermediate even
+			 * though, if overflow were the problem, that should be
+			 * most prone). */
+			accel_raw_x = data[0] | ((int)data[1] << 8);
+			accel_read_x = CORRECT_X(accel_raw_x);
+			accel_raw_y = data[2] | ((int)data[3] << 8);
+			accel_read_y = CORRECT_Y(accel_raw_y);
+			accel_raw_z = data[4] | ((int)data[5] << 8);
+			accel_read_z = CORRECT_Z(accel_raw_z);
 		}
 	}
 }
@@ -92,7 +113,7 @@ int	accel_init(void)
 		return -1;
 	}
 
-	accel_reg_wr(ADXL345_DATA_FMT, ADXL_DFMT_FULL_RES | ADXL_RANGE_4G);
+	accel_reg_wr(ADXL345_DATA_FMT, ADXL_DFMT_FULL_RES | ADXL_RANGE_8G);
 	accel_reg_wr(ADXL345_ACT_INACT_CTL, 0);
 	accel_reg_wr(ADXL345_TIME_FF, 0);
 	accel_reg_wr(ADXL345_BW_RATE, ADXL_RATE_25HZ);	/* LOW_POWER=0 */
