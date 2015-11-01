@@ -21,6 +21,7 @@ LINKFLAGS=-Wl,--gc-sections -march=armv6-m -mthumb --specs=nano.specs
 
 OBJECTS = me_startup_stm32f0xx.o system_stm32f0xx.o stm32f0xx_rcc.o stm32f0xx_tim.o stm32f0xx_gpio.o stm32f0xx_dma.o stm32f0xx_misc.o stm32f0xx_i2c.o stm32f0xx_exti.o stm32f0xx_syscfg.o
 OBJECTS += main.o uart.o time.o ws2812b.o i2c.o vector.o adxl345.o
+OBJECTS += qfplib.s
 
 all:	main.fl.bin
 
