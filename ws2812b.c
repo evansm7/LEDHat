@@ -224,7 +224,7 @@ void	ws2812_display(uint8_t *input_buffer, int num_leds)
 
 void DMA1_Channel4_5_IRQHandler(void)
 {
-	int just_finished_bottom_buffer;
+	int just_finished_bottom_buffer = 0;
 	if (DMA_GetITStatus(DMA1_IT_HT5)) {
 		DMA_ClearITPendingBit(DMA1_IT_HT5);
 		just_finished_bottom_buffer = 1;
