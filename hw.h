@@ -12,7 +12,7 @@
  * PA2/3 alternates for UART...?
  */
 
-#define UART1_BAUD 	9600
+#define UART1_BAUD 	115200
 #define SYS_CLK		48000000
 
 /* PA4 for LED out */
