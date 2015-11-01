@@ -16,6 +16,7 @@
 #define SYS_CLK		48000000
 
 /* PA4 for LED out */
+static void	setup_io(void) __attribute__((unused));
 static void	setup_io(void)
 {
 	GPIO_InitTypeDef  GPIO_InitStructure;
@@ -30,6 +31,7 @@ static void	setup_io(void)
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 }
 
+static void led(int o) __attribute__((unused));
 static void led(int o)
 {
 	if (o)

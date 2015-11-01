@@ -12,7 +12,7 @@ INCLUDES += -I$(CMSIS)/Device/ST/STM32F0xx/Include
 INCLUDES += -I$(STMLIB)/inc
 INCLUDES += -I.
 
-CFLAGS=-mthumb -mcpu=cortex-m0 -std=c99 -Os -g -ggdb $(INCLUDES) -ffreestanding -msoft-float -DUSE_STDPERIPH_DRIVER=1
+CFLAGS=-mthumb -mcpu=cortex-m0 -std=c99 -Os -g -ggdb $(INCLUDES) -ffreestanding -msoft-float -DUSE_STDPERIPH_DRIVER=1 -Wall
 CFLAGS += -fdata-sections -ffunction-sections
 LIBS=-lgcc
 # Note:  The -march/-mthumb items are must-haves, to select v6m crtX.o and
