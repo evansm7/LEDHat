@@ -15,7 +15,7 @@
 #define UART1_BAUD 	115200
 #define SYS_CLK		48000000
 
-/* PA4 for LED out */
+/* PA4 for LED out, PA1 for button in */
 static void	setup_io(void) __attribute__((unused));
 static void	setup_io(void)
 {
@@ -29,6 +29,17 @@ static void	setup_io(void)
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+}
+
+static int  button_pressed(void)  __attribute__((unused));
+static int  button_pressed(void)
+{
+	return !(GPIOA->IDR & B(1));
 }
 
 static void led(int o) __attribute__((unused));
