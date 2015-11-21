@@ -33,6 +33,8 @@
 
 #define NUM_LEDS 	38
 
+#define MIN_RADIUS	16
+
 static uint8_t framebuffer[2][3*NUM_LEDS];
 static uint8_t backbuffer[3*NUM_LEDS];
 
@@ -154,6 +156,64 @@ void	display_pattern(uint32_t p)
 	ws2812_display(framebuffer[0], NUM_LEDS);
 }
 
+/* The LEDs are 0 to 38ish, clockwise.  When moving from one position to
+ * another, this finds the 'shortest' route; returns -1 for subtract from a to
+ * get to b, +1 for add to a to get to b.
+ */
+static int dir(int a, int b)
+{
+	int x = b - a;
+	if (x < 0)
+		x += NUM_LEDS;
+	if (x > NUM_LEDS/2)
+		return -1;
+	else
+		return 1;
+}
+
+static const uint8_t rgb_clut[] = {
+#include "rgb_clut.h"
+};
+
+static uint32_t clut(uint8_t c)
+{
+        if (c >= 0xff) {
+                return 0xffffff;
+        } else {
+                // rgbR,GBrg,bRGB,rgbR,...
+                // c % 4 =
+                // 0: 3 offset 0
+                // 1: 1 offset 4 + 2 offset 0
+                // 2: 2 offset 2 + 1 offset 0
+                // 3: 3 offset 1
+                uint32_t r = rgb_clut[c*3+0];
+                uint32_t g = rgb_clut[c*3+1];
+                uint32_t b = rgb_clut[c*3+2];
+                return r | (g << 8) | (b << 16);
+        }
+}
+
+/* */
+static void 	fill_line(uint8_t *fb, int from, int to, int radius)
+{
+	int i = from;
+	int n = dir(from, to);
+	while (i != to) {
+		uint32_t c = clut(radius);
+		/* G, R, B */
+		fb[(i*3) + 0] = (c >> 8) & 0xff;
+		fb[(i*3) + 1] = (c) & 0xff;
+		fb[(i*3) + 2] = (c >> 16) & 0xff;
+
+		i += n;
+		if (i >= NUM_LEDS) {
+			i = 0;
+		} else if (i < 0) {
+			i += NUM_LEDS;
+		}
+	}
+}
+
 int	main(void)
 {
 	setup_clocks();
@@ -207,6 +267,8 @@ int	main(void)
 	timeleft = 0;
 	uint8_t disp_buf = 0;
 	uint32_t tick = time_get();
+	int effect = 0;
+	int last_val = 0;
 
 #ifdef DEBUG
 	int minx = INT_MAX, miny = INT_MAX, minz = INT_MAX;
@@ -221,7 +283,7 @@ int	main(void)
 		const int frame_period = 100;
 #else
 		/* Aim for 10ms/frame. */
-		const int frame_period = 10;
+		const int frame_period = 7;
 #endif
 		uint32_t ptick = time_get();
 		uint32_t ntick = wait_till_tick(tick + frame_period);
@@ -286,15 +348,19 @@ int	main(void)
 		float phi = my_qfp_fatan2(sintheta, sinrho);
 
 		/* And the 'length' of that 2D vector when viewed from the top is
-		 * qfp_fsqrt[_fast](qfp_fmul(sintheta, sintheta),
-		 *                  qfp_fmul(sinrho, sinrho));
-		 * (on a scale of 0.0 to 1.0.)
+		 * qfp_fsqrt[_fast](qfp_fadd(qfp_fmul(sintheta, sintheta),
+		 *                  qfp_fmul(sinrho, sinrho)));
+		 * (on a scale of 0.0 to sqrt(2))
 		 *
 		 * Now, this can be used to see how much the board is tilting
 		 * from straight vertical (which is very noisy) and to scale the
 		 * LED brightness with a threshold/cut-off if the hat's too
 		 * vertical -- this removes jittery straight-up vector noise.
 		 */
+		float frad = qfp_fsqrt(qfp_fadd(qfp_fmul(sintheta, sintheta),
+						qfp_fmul(sinrho, sinrho)));
+		int radius = qfp_float2int(qfp_fmul(181.019335983756,
+						    frad)); /* 256/sqrt(2) */
 
 		/*************************************************************/
 		/* Display patterns/graphics */
@@ -302,8 +368,30 @@ int	main(void)
 		/* Basic:  Convert from radians to numleds: */
 		int led = qfp_float2int(qfp_fdiv(qfp_fmul(phi, (float)NUM_LEDS),
 						 (float)(PI * 2)));
-		backbuffer[((led % NUM_LEDS)*3)+2] = 16;
 
+		if (effect == 0) {
+			/* LEDs go the other way round... */
+			if (led >= NUM_LEDS)
+				led = NUM_LEDS - 1; /* JIC */
+			/* Rotate 90 degrees... crudely */
+			led -= (NUM_LEDS/4);
+			if (led < 0)
+				led += NUM_LEDS;
+
+			led = NUM_LEDS - 1 - led;
+			if (radius > MIN_RADIUS) {
+				radius *= 1.5;
+				if (radius > 255)
+					radius = 255;
+
+				if (led != last_val) {
+					fill_line(backbuffer, last_val, led, radius);
+					last_val = led;
+				}
+			}
+		} else {
+			backbuffer[((led % NUM_LEDS)*3)+2] = 16;
+		}
 #ifdef DEBUG
 		uart_phex32(led);
 
