@@ -84,7 +84,7 @@ void    setup_clocks(void)
 
 void	measure_vec_at_rest(vec16_t *out)
 {
-	const int i = 1000;
+	const int i = 2000;
 	int sx = 0, sy = 0, sz = 0;
 	vec16_t	m;
 
@@ -174,11 +174,11 @@ int	main(void)
 	led(0);
 
 	uart_pstr("Waiting to measure... ");
-	display_pattern(0x000200);		/* Red zebra */
-	delay_ms(1000*1);
+	display_pattern(0x000400);		/* Red zebra */
+	delay_ms(1000*5);
 
 	uart_pstr("measuring at-rest vector... ");
-	display_pattern(0x040404);		/* White zebra */
+	display_pattern(0x010101);		/* White zebra */
 
 	measure_vec_at_rest(&rest_vector);
 	print_vector(&rest_vector);
