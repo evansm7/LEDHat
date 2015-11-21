@@ -116,7 +116,7 @@ int	accel_init(void)
 	accel_reg_wr(ADXL345_DATA_FMT, ADXL_DFMT_FULL_RES | ADXL_RANGE_8G);
 	accel_reg_wr(ADXL345_ACT_INACT_CTL, 0);
 	accel_reg_wr(ADXL345_TIME_FF, 0);
-	accel_reg_wr(ADXL345_BW_RATE, ADXL_RATE_25HZ);	/* LOW_POWER=0 */
+	accel_reg_wr(ADXL345_BW_RATE, ADXL_RATE_50HZ);	/* LOW_POWER=0 */
 	accel_reg_wr(ADXL345_FIFO_CTL, ADXL_FIFO_BYPASS);
 	accel_reg_wr(ADXL345_INT_ENABLE, ADXL_IRQ_DATA_READY);
 	/* Selected IRQ on INT1 output, all others on INT2 */
