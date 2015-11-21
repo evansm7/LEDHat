@@ -35,6 +35,8 @@ main.fl.elf: $(OBJECTS)
 	$(CC) $(LINKFLAGS) -Wl,-T stm32_flash.ld $^ $(LIBS) -o $@
 	$(SIZE) $@
 
+main.o:	main.c rgb_clut.h
+	$(CC) $(CFLAGS) -c $< -o $@
 %.o:	%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 %.o:	%.s
@@ -46,6 +48,9 @@ main.fl.elf: $(OBJECTS)
 	$(CC) $(CFLAGS) -c $< -o $@
 %.o:	$(STMLIB)/src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
+rgb_clut.h:	./mkclut.pl
+	./mkclut.pl > $@
 
 prog:	main.fl.bin
 	st-flash --reset write $< 0x08000000
