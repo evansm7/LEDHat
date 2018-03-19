@@ -282,7 +282,7 @@ int	main(void)
 #ifdef DEBUG
 		const int frame_period = 100;
 #else
-		/* Aim for 10ms/frame. */
+		/* Aim for a few ms/frame. */
 		const int frame_period = 7;
 #endif
 		uint32_t ptick = time_get();
@@ -371,6 +371,8 @@ int	main(void)
 
 		if (effect == 0) {
 			/* LEDs go the other way round... */
+			led = NUM_LEDS-1 - led;
+
 			if (led >= NUM_LEDS)
 				led = NUM_LEDS - 1; /* JIC */
 			/* Rotate 90 degrees... crudely */
