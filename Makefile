@@ -1,12 +1,13 @@
 # Makefile for LEDHat firmware
-# Copyright (c) 2015,2018 Matt Evans
 #
 # This makefile builds two things: firmware for the MCU and a 'sim'
 # binary that's an OpenGL app for testing.
 #
-# This program is free software: you can redistribute it and/or modify
+# Copyright (c) 2015, 2018, 2021 Matt Evans
+#
+# This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
+# the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -14,9 +15,16 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
+
+# This project uses QFPLIB, fetched from:
+QFPLIB_VER=20200617
+QFPLIB_BUNDLE=qfplib-$(QFPLIB_VER)
+QFPLIB_ARC=$(QFPLIB_BUNDLE).tar.gz
+QFPLIB_URL=https://www.quinapalus.com/$(QFPLIB_ARC)
 
 ifeq ($(V), 1)
 	VERBOSE=
@@ -53,7 +61,7 @@ LINKFLAGS = -Wl,--gc-sections -march=armv6-m -mthumb --specs=nano.specs
 LINKFLAGS += -Wl,-T stm32f030x4.ld
 
 OBJECTS = me_startup_stm32f0xx.o system_stm32f0xx.o stm32f0xx_rcc.o stm32f0xx_tim.o stm32f0xx_gpio.o stm32f0xx_dma.o stm32f0xx_misc.o stm32f0xx_i2c.o stm32f0xx_exti.o stm32f0xx_syscfg.o
-OBJECTS += main.o uart.o time.o ws2812b.o i2c.o vector.o adxl345.o
+OBJECTS += main.o uart.o time.o ws2812b.o i2c.o adxl345.o
 OBJECTS += qfplib.s
 
 ################################################################################
@@ -63,7 +71,7 @@ all:	main.fl.bin
 
 .PHONY: clean
 clean:
-	rm -f *.o *~ *.bin *.elf
+	rm -rf *.o *~ *.bin *.elf rgb_clut.h qfplib.* $(QFPLIB_BUNDLE)
 
 %.bin:	%.elf
 	@$(SIZE) $<
@@ -75,7 +83,7 @@ main.fl.elf: $(OBJECTS)
 	$(VERBOSE)$(CC) $(LINKFLAGS) $^ $(LIBS) -o $@
 	$(SIZE) $@
 
-main.o:	main.c rgb_clut.h
+main.o:	main.c rgb_clut.h qfplib.s qfplib.h
 	@echo "[CC]  $@"
 	$(VERBOSE)$(CC) $(CFLAGS) -c $< -o $@
 %.o:	%.c
@@ -97,6 +105,18 @@ main.o:	main.c rgb_clut.h
 
 rgb_clut.h:	./mkclut.pl
 	./mkclut.pl > $@
+
+# Gubbins for fetching QFPLIB:
+$(QFPLIB_ARC):
+	wget $(QFPLIB_URL)
+$(QFPLIB_BUNDLE): $(QFPLIB_ARC)
+	tar xvf $(QFPLIB_ARC)
+$(QFPLIB_BUNDLE)/qfplib.s:	$(QFPLIB_BUNDLE)
+$(QFPLIB_BUNDLE)/qfplib.h:	$(QFPLIB_BUNDLE)
+qfplib.s:	$(QFPLIB_BUNDLE)/qfplib.s
+	ln -sf $(QFPLIB_BUNDLE)/qfplib.s .
+qfplib.h:	$(QFPLIB_BUNDLE)/qfplib.h
+	ln -sf $(QFPLIB_BUNDLE)/qfplib.h .
 
 prog:	main.fl.bin
 	st-flash --reset write $< 0x08000000
