@@ -1,3 +1,22 @@
+/* DMA-driven WS2812B LED driver for STM32F0 microcontrollers
+ *
+ * Copyright (C) 2015, 2021 Matt Evans
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
 #include <stm32f0xx_gpio.h>
 #include <inttypes.h>
 #include <stm32f0xx.h>
@@ -76,7 +95,7 @@ static void ws_timer_init(void)
 	/* When DMA occurs to the TIM1->DMAR address, it hits the CCR3 reg. */
 	TIM_DMAConfig(TIM1, TIM_DMABase_CCR3, TIM_DMABurstLength_1Transfer);
 	TIM_DMACmd(TIM1, TIM_DMA_CC3, ENABLE);
-	
+
 	/* TIM1 Main Output Enable */
 	TIM_CtrlPWMOutputs(TIM1, ENABLE);
 }
@@ -178,11 +197,11 @@ void	ws2812_display(uint8_t *input_buffer, int num_leds)
 	 * +------+------+
 	 * |2     |1     |
 	 * +------+^-----+ then IRQ 1 finished, fill 3 (pad)
-	 * 
+	 *
 	 * +------+------+
 	 * |2     |3  000|
 	 * +^-----+------+ then IRQ 2 finished, fill 4 (zero)
-	 * 
+	 *
 	 * +------+------+
 	 * |4 0000|3  000|
 	 * +------+^-----+ then IRQ 3 finished, as 4 is starting cancel DMA.
@@ -232,7 +251,7 @@ void DMA1_Channel4_5_IRQHandler(void)
 		DMA_ClearITPendingBit(DMA1_IT_TC5);
 		just_finished_bottom_buffer = 0;
 	}
-	
+
 	/* Have transferred 'BUFFER_HALF' items from either the bottom or top
 	 * half of the buffer.  Refill entries into this half (as the other half
 	 * is now being clocked out).  The logic is basically the same for
@@ -240,7 +259,7 @@ void DMA1_Channel4_5_IRQHandler(void)
 	 * reasons, for HT (after bottom half) and TC (after top half).
 	 */
 	int startpoint = just_finished_bottom_buffer ? 0 : BUFFER_HALF;
-	int entries_to_go = total_transfer_size - input_buffer_pos;		/* Might go negative! */
+	int entries_to_go = total_transfer_size - input_buffer_pos;  /* Might go negative! */
 	for (int i = 0; i < BUFFER_HALF; i++) {
 		/* After we finish the input data, pad with zero: */
 		uint8_t e = (i < entries_to_go) ?

@@ -1,3 +1,27 @@
+/* STM32F0 I2C routines
+ *
+ * Some parts borrowed from the STM32 F0 StdPeriph Library, licenced as:
+ * ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; COPYRIGHT 2014 STMicroelectronics</center></h2>
+ *
+ * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
+ * You may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ *        http://www.st.com/software_license_agreement_liberty_v2
+ *
+ * Unless required by applicable law or agreed to in writing, software 
+ * distributed under the License is distributed on an "AS IS" BASIS, 
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * ******************************************************************************
+ * Modifications copyright 2015 Matt Evans
+ */
+
 #include <inttypes.h>
 #include <stm32f0xx.h>
 #include <stm32f0xx_rcc.h>
@@ -19,9 +43,9 @@
 #define I2C_TIMEOUT_LOOPS	10000
 
 int i2c_read(uint8_t devaddr, uint8_t regaddr, uint8_t *data, int num)
-{   
+{
 	unsigned int timeout;
-	
+
 	/* Test on BUSY Flag */
 	timeout = I2C_TIMEOUT_LOOPS;
 	I2CDBG("Wait non-busy\n");
@@ -32,7 +56,7 @@ int i2c_read(uint8_t devaddr, uint8_t regaddr, uint8_t *data, int num)
 	I2CDBG("Config address\n");
 	/* Configure slave address, nbytes, reload, end mode and start or stop generation */
 	I2C_TransferHandling(I2C1, devaddr, 1, I2C_SoftEnd_Mode, I2C_Generate_Start_Write);
-  
+
 	/* Wait until TXIS flag is set */
   	timeout = I2C_TIMEOUT_LOOPS;
 	I2CDBG("Wait TXIS\n");
@@ -44,14 +68,14 @@ int i2c_read(uint8_t devaddr, uint8_t regaddr, uint8_t *data, int num)
 	I2CDBG("Send regaddr\n");
 	/* Send Register address */
 	I2C_SendData(I2C1, (uint8_t)regaddr);
-  
+
 	/* Wait until TC flag is set */
 	timeout = I2C_TIMEOUT_LOOPS;
 	while(I2C_GetFlagStatus(I2C1, I2C_ISR_TC) == RESET) {
 		if(timeout-- == 0)
 			return -1;
 	}
-  
+
 	/* Configure slave address, nbytes, reload, end mode and start or stop generation */
 	I2C_TransferHandling(I2C1, devaddr, num, I2C_AutoEnd_Mode, I2C_Generate_Start_Read);
 
@@ -62,7 +86,7 @@ int i2c_read(uint8_t devaddr, uint8_t regaddr, uint8_t *data, int num)
 				return -1;
 		}
 		data[rxpos] = I2C_ReceiveData(I2C1);
-	}    
+	}
 	/* Wait until STOPF flag is set */
 	timeout = I2C_TIMEOUT_LOOPS;
 	while(I2C_GetFlagStatus(I2C1, I2C_ISR_STOPF) == RESET) {
@@ -78,9 +102,9 @@ int i2c_read(uint8_t devaddr, uint8_t regaddr, uint8_t *data, int num)
 
 
 int i2c_write(uint8_t devaddr, uint8_t regaddr, uint8_t *data, int num)
-{   
+{
 	unsigned int timeout;
-	
+
 	/* Test on BUSY Flag */
 	timeout = I2C_TIMEOUT_LOOPS;
 	I2CDBG("Wait non-busy\n");
@@ -90,7 +114,7 @@ int i2c_write(uint8_t devaddr, uint8_t regaddr, uint8_t *data, int num)
 	}
 	I2CDBG("Config address\n");
 	I2C_TransferHandling(I2C1, devaddr, 1, I2C_Reload_Mode, I2C_Generate_Start_Write);
-  
+
 	/* Wait until TXIS flag is set */
   	timeout = I2C_TIMEOUT_LOOPS;
 	I2CDBG("Wait TXIS\n");
@@ -102,14 +126,14 @@ int i2c_write(uint8_t devaddr, uint8_t regaddr, uint8_t *data, int num)
 	I2CDBG("Send regaddr\n");
 	/* Send Register address */
 	I2C_SendData(I2C1, (uint8_t)regaddr);
-  
+
 	/* Wait until TCR flag is set */
 	timeout = I2C_TIMEOUT_LOOPS;
 	while(I2C_GetFlagStatus(I2C1, I2C_ISR_TCR) == RESET) {
 		if(timeout-- == 0)
 			return -1;
 	}
-  
+
 	I2C_TransferHandling(I2C1, devaddr, num, I2C_AutoEnd_Mode, I2C_No_StartStop);
 
 	for (int txpos = 0; txpos < num; txpos++) {
@@ -132,7 +156,7 @@ int i2c_write(uint8_t devaddr, uint8_t regaddr, uint8_t *data, int num)
 
 	return 0;
 }
-  
+
 void i2c_init(void)
 {
 	/* PA9=SCL, PA10=SDA */
@@ -165,7 +189,7 @@ void i2c_init(void)
 	 * = 400KHz.
 	 */
 	I2C_InitStructure.I2C_Timing = 0x00320606;
-  
+
 	I2C_Init(I2C1, &I2C_InitStructure);
 	I2C_Cmd(I2C1, ENABLE);
 }
