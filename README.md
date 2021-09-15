@@ -16,7 +16,7 @@ Bits you can steal:
 
 Have fun!
 
-[https://axio.ms/]()
+https://axio.ms/
 
 
 ## License
@@ -40,6 +40,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 ### Other parts/credits
 
-   * stm32f030x4.ld is hacked from an original from [https://github.com/antongus/stm32-ld-scripts]() (MIT-licenced)
-   * Uses qfplib from [https://www.quinapalus.com/qfplib-m0-tiny.html]()
+   * stm32f030x4.ld is hacked from an original from https://github.com/antongus/stm32-ld-scripts (MIT-licenced)
+   * Uses qfplib from https://www.quinapalus.com/qfplib-m0-tiny.html
    * `i2c.c` uses a handful of code from the ST STM32 StdPeriphLib examples
